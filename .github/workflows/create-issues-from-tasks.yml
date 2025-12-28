@@ -29,8 +29,8 @@ jobs:
             }
 
             const content = fs.readFileSync(path, 'utf8');
-            const EM_DASH = '—';
-            const normalizedContent = content.replace(new RegExp(EM_DASH, 'g'), '-'); // Normalize em dashes to hyphens for consistent parsing.
+            const EM_DASH_REGEX = /—/g;
+            const normalizedContent = content.replace(EM_DASH_REGEX, '-'); // Normalize em dashes to hyphens for consistent parsing.
             // Match blocks like:
             // **T1 - Priority P1**
             // **Requirement:** <text>
@@ -43,10 +43,8 @@ jobs:
             const desiredPattern = '\\*\\*Desired Result:\\*\\*\\s*([\\s\\S]*?)';
             // Ensure we stop before the next task header or the end of the file.
             const boundaryPattern = '(?=\\r?\\n\\*\\*T\\d+\\s*-|$)';
-            const taskRegex = new RegExp(
-              `${headerPattern}[\\r\\n]+${requirementPattern}\\r?\\n${desiredPattern}${boundaryPattern}`,
-              'g',
-            );
+            const taskPattern = `${headerPattern}[\\r\\n]+${requirementPattern}\\r?\\n${desiredPattern}${boundaryPattern}`;
+            const taskRegex = new RegExp(taskPattern, 'g'); // Combine patterns into a single matcher per task.
 
             const tasks = [];
             let match;
@@ -75,7 +73,7 @@ jobs:
               'priority: medium': { color: 'dbab09', description: 'Medium priority task imported from TASKS.md' },
               'priority: low': { color: '0e8a16', description: 'Low priority task imported from TASKS.md' },
             };
-            const TITLE_MAX_LENGTH = 120; // Keep titles concise in GitHub issue lists.
+            const TITLE_MAX_LENGTH = 120; // GitHub allows ~256 chars; 120 keeps list views readable.
             const ELLIPSIS = '…';
 
             const existingTitles = new Set();
