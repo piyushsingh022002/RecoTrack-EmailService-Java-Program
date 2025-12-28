@@ -29,7 +29,8 @@ jobs:
             }
 
             const content = fs.readFileSync(path, 'utf8');
-            const normalizedContent = content.replace(/\u2014/g, '-'); // Normalize em dashes to hyphens for consistent parsing.
+            const EM_DASH = '—';
+            const normalizedContent = content.replace(new RegExp(EM_DASH, 'g'), '-'); // Normalize em dashes to hyphens for consistent parsing.
             // Match blocks like:
             // **T1 - Priority P1**
             // **Requirement:** <text>
@@ -75,13 +76,13 @@ jobs:
               'priority: low': { color: '0e8a16', description: 'Low priority task imported from TASKS.md' },
             };
             const TITLE_MAX_LENGTH = 120; // Keep titles concise in GitHub issue lists.
-            const ELLIPSIS = '...';
+            const ELLIPSIS = '…';
 
             const existingTitles = new Set();
             for await (const { data } of github.paginate.iterator(github.rest.issues.listForRepo, {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              state: 'all',
+              state: 'all', // Include closed issues to avoid recreating previously tracked tasks.
               per_page: 100,
             })) {
               data.forEach((issue) => existingTitles.add(issue.title));
@@ -89,7 +90,7 @@ jobs:
 
             const createdTitles = [];
             for (const task of tasks) {
-              const titleText = task.requirement.replace(/\s+/g, ' ').trim();
+              const titleText = task.requirement.replace(/\s+/g, ' ').trim(); // Normalize whitespace for readability.
               let title = `${task.id} - ${titleText}`;
               if (title.length > TITLE_MAX_LENGTH) {
                 title = `${title.slice(0, TITLE_MAX_LENGTH - ELLIPSIS.length)}${ELLIPSIS}`;
