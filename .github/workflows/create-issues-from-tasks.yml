@@ -29,6 +29,10 @@ jobs:
             }
 
             const content = fs.readFileSync(path, 'utf8');
+            // Match blocks like:
+            // **T1 — Priority P1**
+            // **Requirement:** <text>
+            // **Desired Result:** <text>
             const taskRegex = /\*\*(T\d+)\s*[—-]\s*Priority\s*P([1-3])\*\*[\r\n]+(?:\*\*Requirement:\*\*\s*)([\s\S]*?)\r?\n(?:\*\*Desired Result:\*\*\s*)([\s\S]*?)(?=\r?\n\*\*T\d+\s*[—-]|$)/g;
 
             const tasks = [];
@@ -53,6 +57,11 @@ jobs:
               P2: 'priority: medium',
               P3: 'priority: low',
             };
+            const labelDetails = {
+              'priority: high': { color: 'd73a4a', description: 'High priority task imported from TASKS.md' },
+              'priority: medium': { color: 'dbab09', description: 'Medium priority task imported from TASKS.md' },
+              'priority: low': { color: '0e8a16', description: 'Low priority task imported from TASKS.md' },
+            };
 
             const existingTitles = new Set();
             for await (const { data } of github.paginate.iterator(github.rest.issues.listForRepo, {
@@ -66,8 +75,8 @@ jobs:
 
             const createdTitles = [];
             for (const task of tasks) {
-              const titleRequirement = task.requirement.replace(/\r?\n/g, ' ');
-              const title = `${task.id} — ${titleRequirement}`;
+              const titleText = task.requirement.replace(/\r?\n/g, ' ');
+              const title = `${task.id} — ${titleText}`;
 
               if (existingTitles.has(title)) {
                 core.info(`Skipping existing issue: ${title}`);
@@ -84,11 +93,14 @@ jobs:
                   });
                 } catch (error) {
                   if (error.status === 404) {
-                    await github.rest.issues.createLabel({
-                      owner: context.repo.owner,
-                      repo: context.repo.repo,
-                      name: label,
-                    });
+                  const { color, description } = labelDetails[label] || { color: 'ededed', description: 'Priority label imported from TASKS.md' };
+                  await github.rest.issues.createLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name: label,
+                    color,
+                    description,
+                  });
                   } else {
                     throw error;
                   }
