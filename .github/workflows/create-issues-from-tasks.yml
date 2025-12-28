@@ -1,0 +1,155 @@
+name: Create GitHub issues from TASKS.md
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  create-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create issues from TASKS.md
+        id: create_issues
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = 'TASKS.md';
+
+            if (!fs.existsSync(path)) {
+              core.setFailed(`TASKS.md not found at ${path}`);
+              return;
+            }
+
+            const content = fs.readFileSync(path, 'utf8');
+            const EM_DASH_REGEX = /—/g;
+            const normalizedContent = content.replace(EM_DASH_REGEX, '-'); // Normalize em dashes to hyphens for consistent parsing.
+            const parseTasks = (markdown) => {
+              // Match blocks like:
+              // **T1 - Priority P1**
+              // **Requirement:** <text>
+              // **Desired Result:** <text>
+              const headerPattern = '\\*\\*(T\\d+)\\s*-\\s*Priority\\s*P([1-3])\\*\\*';
+              const requirementPattern = '\\*\\*Requirement:\\*\\*\\s*([\\s\\S]*?)';
+              const desiredPattern = '\\*\\*Desired Result:\\*\\*\\s*([\\s\\S]*?)';
+              const boundaryPattern = '(?=\\r?\\n\\*\\*T\\d+\\s*-|$)'; // Stop before the next header or file end.
+              const taskPattern = `${headerPattern}[\\r\\n]+${requirementPattern}\\r?\\n${desiredPattern}${boundaryPattern}`;
+              const taskRegex = new RegExp(taskPattern, 'g');
+
+              const parsed = [];
+              let match;
+              while ((match = taskRegex.exec(markdown)) !== null) {
+                const [, id, priority, requirement, desiredResult] = match;
+                parsed.push({
+                  id,
+                  priority: `P${priority}`,
+                  requirement: requirement.trim(),
+                  desiredResult: desiredResult.trim(),
+                });
+              }
+
+              return parsed;
+            };
+
+            const tasks = parseTasks(normalizedContent);
+
+            if (tasks.length === 0) {
+              core.setFailed('No tasks found in TASKS.md');
+              return;
+            }
+
+            const labelMap = {
+              P1: 'priority: high',
+              P2: 'priority: medium',
+              P3: 'priority: low',
+            };
+            const labelDetails = {
+              'priority: high': { color: 'd73a4a', description: 'High priority task imported from TASKS.md' },
+              'priority: medium': { color: 'dbab09', description: 'Medium priority task imported from TASKS.md' },
+              'priority: low': { color: '0e8a16', description: 'Low priority task imported from TASKS.md' },
+            };
+            const TITLE_MAX_LENGTH = 120; // GitHub allows ~256 chars; 120 keeps list views readable.
+            const ELLIPSIS = '…';
+
+            const existingTitles = new Set();
+            for await (const { data } of github.paginate.iterator(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all', // Include closed issues to avoid recreating previously tracked tasks.
+              per_page: 100,
+            })) {
+              data.forEach((issue) => existingTitles.add(issue.title));
+              if (existingTitles.size >= tasks.length) {
+                break;
+              }
+            }
+
+            const createdTitles = [];
+            for (const task of tasks) {
+              const titleText = task.requirement.replace(/\s+/g, ' ').trim(); // Normalize whitespace for readability.
+              let title = `${task.id} - ${titleText}`;
+              if (title.length > TITLE_MAX_LENGTH) {
+                title = `${title.slice(0, TITLE_MAX_LENGTH - ELLIPSIS.length)}${ELLIPSIS}`;
+              }
+
+              if (existingTitles.has(title)) {
+                core.info(`Skipping existing issue: ${title}`);
+                continue;
+              }
+
+              const label = labelMap[task.priority];
+              if (label) {
+                try {
+                  await github.rest.issues.getLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name: label,
+                  });
+                } catch (error) {
+                  if (error.status === 404) {
+                    const { color, description } = labelDetails[label];
+                    await github.rest.issues.createLabel({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      name: label,
+                      color,
+                      description,
+                    });
+                  } else {
+                    throw error;
+                  }
+                }
+              }
+
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body: `**Requirement:**\n${task.requirement}\n\n**Desired Result:**\n${task.desiredResult}`,
+                labels: label ? [label] : [],
+              });
+
+              createdTitles.push(title);
+            }
+
+            const firstTitle = createdTitles.at(0) || '';
+            const lastTitle = createdTitles.at(-1) || '';
+            core.setOutput('created_count', String(createdTitles.length));
+            core.setOutput('first_title', firstTitle);
+            core.setOutput('last_title', lastTitle);
+
+            const summaryText = createdTitles.length
+              ? `Created ${createdTitles.length} issues. First: ${firstTitle}. Last: ${lastTitle}.`
+              : 'No new issues created. All tasks already exist.';
+
+            await core.summary
+              .addHeading('Task issue creation summary')
+              .addRaw(summaryText)
+              .write();
