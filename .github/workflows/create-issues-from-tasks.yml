@@ -33,8 +33,11 @@ jobs:
             // **T1 — Priority P1**
             // **Requirement:** <text>
             // **Desired Result:** <text>
+            // Capture T-number and priority from the header line.
             const headerPattern = '\\*\\*(T\\d+)\\s*[—-]\\s*Priority\\s*P([1-3])\\*\\*';
+            // Capture the requirement block up to the desired result label.
             const requirementPattern = '\\*\\*Requirement:\\*\\*\\s*([\\s\\S]*?)';
+            // Capture the desired result block up to the next task header or file end.
             const desiredPattern = '\\*\\*Desired Result:\\*\\*\\s*([\\s\\S]*?)';
             const taskRegex = new RegExp(
               `${headerPattern}[\\r\\n]+${requirementPattern}\\r?\\n${desiredPattern}(?=\\r?\\n\\*\\*T\\d+\\s*[—-]|$)`,
@@ -80,12 +83,13 @@ jobs:
             }
 
             const createdTitles = [];
-            const MAX_TITLE_LENGTH = 120;
+            const MAX_TITLE_LENGTH = 120; // Keep titles readable in GitHub UI lists.
+            const ELLIPSIS = '…';
             for (const task of tasks) {
               const titleText = task.requirement.replace(/\r?\n/g, ' ');
               let title = `${task.id} — ${titleText}`;
               if (title.length > MAX_TITLE_LENGTH) {
-                title = `${title.slice(0, MAX_TITLE_LENGTH - 1)}…`;
+                title = `${title.slice(0, MAX_TITLE_LENGTH - ELLIPSIS.length)}${ELLIPSIS}`;
               }
 
               if (existingTitles.has(title)) {
@@ -103,7 +107,11 @@ jobs:
                   });
                 } catch (error) {
                   if (error.status === 404) {
-                    const { color, description } = labelDetails[label] || { color: 'ededed', description: 'Priority label imported from TASKS.md' };
+                    const detail = labelDetails[label];
+                    if (!detail) {
+                      throw new Error(`Missing label configuration for ${label}`);
+                    }
+                    const { color, description } = detail;
                     await github.rest.issues.createLabel({
                       owner: context.repo.owner,
                       repo: context.repo.repo,
