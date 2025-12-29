@@ -40,6 +40,15 @@ public class AuthFilter extends OncePerRequestFilter {
 
         jwtValidator.validate(token);
 
+        private final ClientValidator clientValidator =
+            new ClientValidator(Set.of("reco-web", "reco-admin"));
+
+        try {
+            clientValidator.validate(clientId);
+        } catch (IllegalArgumentException ex) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
         // We will add validations step by step
         filterChain.doFilter(request, response);
     }
