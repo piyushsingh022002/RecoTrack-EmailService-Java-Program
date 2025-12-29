@@ -1,0 +1,14 @@
+# src/main/resources/application.yml
+security:
+  jwt:
+    issuer: email-service
+    audience: email-clients
+    secret: ""
+
+  clients:
+    allowed:
+      - client-a
+      - client-b
+
+  dev:
+    enabled: false

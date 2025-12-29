@@ -1,0 +1,5 @@
+# src/main/resources/application-dev.yml
+security:
+  dev:
+    enabled: true
+    token: dev-token-for-swagger
