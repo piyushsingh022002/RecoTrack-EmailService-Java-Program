@@ -1,0 +1,46 @@
+package com.reco.emailservice.security.filter;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.web.filter.OncePerRequestFilter;
+import com.reco.emailservice.security.jwt.JwtValidator;
+
+import java.io.IOException;
+
+public class AuthFilter extends OncePerRequestFilter {
+
+
+    private final JwtValidator jwtValidator =
+            new JwtValidator(
+                "my-super-secret-key-change-later",
+                "reco-email-service",
+                "reco-clients"
+            );
+
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
+
+        // Extract headers
+        String authHeader = request.getHeader("Authorization");
+        String clientId = request.getHeader("X-CLIENT-ID");
+        String signature = request.getHeader("X-SIGNATURE");
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
+        String token = authHeader.substring(7);
+
+        jwtValidator.validate(token);
+
+        // We will add validations step by step
+        filterChain.doFilter(request, response);
+    }
+}
