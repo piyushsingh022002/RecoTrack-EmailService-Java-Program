@@ -12,3 +12,4 @@ security:
 
   dev:
     enabled: false
+    token : dev-token-for-swagger
