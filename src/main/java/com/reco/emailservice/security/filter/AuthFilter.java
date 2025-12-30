@@ -1,6 +1,7 @@
 package com.reco.emailservice.security.filter;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.AntPathMatcher;
+import java.util.List;
 import java.util.Set;
 
 import jakarta.servlet.FilterChain;
@@ -17,28 +18,47 @@ import java.io.IOException;
 
 public class AuthFilter extends OncePerRequestFilter {
 
-    private final JwtValidator jwtValidator =
-        new JwtValidator(
+    private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
+    private static final List<String> PUBLIC_ENDPOINTS = List.of(
+            "/health",
+            "/swagger",
+            "/swagger/**",
+            "/swagger-ui.html",
+            "/swagger-ui/**",
+            "/swagger-resources/**",
+            "/v3/api-docs/**",
+            "/webjars/**");
+
+    private final JwtValidator jwtValidator = new JwtValidator(
             "my-super-secret-key-change-later",
             "reco-email-service",
-            "reco-clients"
-        );
+            "reco-clients");
 
-    private final HmacValidator hmacValidator =
-        new HmacValidator("reco-client-secret");
+    private final HmacValidator hmacValidator = new HmacValidator("reco-client-secret");
 
-    private final ClientValidator clientValidator =
-        new ClientValidator(Set.of("reco-web", "reco-admin"));
+    private final ClientValidator clientValidator = new ClientValidator(Set.of("reco-web", "reco-admin"));
 
-    @Autowired
-    private AuthProperties authProperties;
+    private final AuthProperties authProperties;
+
+    public AuthFilter(AuthProperties authProperties) {
+        this.authProperties = authProperties;
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        return isPublicPath(request);
+    }
 
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
-            FilterChain filterChain
-    ) throws ServletException, IOException {
+            FilterChain filterChain) throws ServletException, IOException {
+
+        if (isPublicPath(request)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         // Extract headers
         String authHeader = request.getHeader("Authorization");
@@ -46,7 +66,7 @@ public class AuthFilter extends OncePerRequestFilter {
         String signature = request.getHeader("X-SIGNATURE");
 
         if (authProperties.getDev().isEnabled() &&
-            ("Bearer " + authProperties.getDev().getToken()).equals(authHeader)) {
+                ("Bearer " + authProperties.getDev().getToken()).equals(authHeader)) {
 
             filterChain.doFilter(request, response);
             return;
@@ -70,5 +90,12 @@ public class AuthFilter extends OncePerRequestFilter {
 
         // We will add validations step by step
         filterChain.doFilter(request, response);
+    }
+
+    private boolean isPublicPath(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        String servletPath = request.getServletPath();
+        return PUBLIC_ENDPOINTS.stream()
+                .anyMatch(pattern -> PATH_MATCHER.match(pattern, uri) || PATH_MATCHER.match(pattern, servletPath));
     }
 }

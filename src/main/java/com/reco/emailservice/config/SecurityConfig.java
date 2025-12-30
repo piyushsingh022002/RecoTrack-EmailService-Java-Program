@@ -1,6 +1,8 @@
-package com.reco.emailservice.config;
+﻿package com.reco.emailservice.config;
 
+import com.reco.emailservice.security.AuthProperties;
 import com.reco.emailservice.security.filter.AuthFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -11,30 +13,41 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 public class SecurityConfig {
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        @Bean
+        public AuthFilter authFilter(AuthProperties authProperties) {
+                return new AuthFilter(authProperties);
+        }
 
-        http
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(session ->
-                session.sessionCreationPolicy(
-                    org.springframework.security.config.http.SessionCreationPolicy.STATELESS
-                )
-            )
+        @Bean
+        public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthFilter authFilter) throws Exception {
 
-            .authorizeHttpRequests(auth ->
-                auth.anyRequest().authenticated()
-            )
+                http
+                                .csrf(csrf -> csrf.disable())
+                                .sessionManagement(session -> session.sessionCreationPolicy(
+                                                org.springframework.security.config.http.SessionCreationPolicy.STATELESS))
 
-            // Register our custom filter BEFORE Spring's auth filter
-            .addFilterBefore(
-                new AuthFilter(),
-                UsernamePasswordAuthenticationFilter.class
-            )
+                                .authorizeHttpRequests(auth -> auth.requestMatchers(
+                                                "/health",
+                                                "/swagger",
+                                                "/swagger/**",
+                                                "/swagger-ui.html",
+                                                "/swagger-ui/**",
+                                                "/swagger-resources/**",
+                                                "/v3/api-docs/**",
+                                                "/webjars/**").permitAll()
+                                                .anyRequest().authenticated())
 
-            .httpBasic(Customizer.withDefaults())
-            .formLogin(form -> form.disable());
+                                .exceptionHandling(ex -> ex
+                                                .authenticationEntryPoint((req, res, e) -> res
+                                                                .sendError(HttpServletResponse.SC_UNAUTHORIZED)))
 
-        return http.build();
-    }
+                                .addFilterBefore(
+                                                authFilter,
+                                                UsernamePasswordAuthenticationFilter.class)
+
+                                .httpBasic(Customizer.withDefaults())
+                                .formLogin(form -> form.disable());
+
+                return http.build();
+        }
 }

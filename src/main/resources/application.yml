@@ -13,3 +13,7 @@ security:
   dev:
     enabled: false
     token : dev-token-for-swagger
+
+springdoc:
+  swagger-ui:
+    path: /api-docs/swagger-ui.html
