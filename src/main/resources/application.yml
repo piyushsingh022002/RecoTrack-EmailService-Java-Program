@@ -1,0 +1,6 @@
+server:
+  port: 8080
+
+jwt:
+  secret: ""
+  expiration: 900 # 15 minutes
