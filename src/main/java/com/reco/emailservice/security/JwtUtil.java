@@ -12,7 +12,7 @@ public class JwtUtil {
     private final Key key;
 
     public JwtUtil() {
-        String secret = "8787uybdf7bf-f-=-0923$5#@#5uaf8y23y4t8y23t4y23t4y23t4y23";
+        String secret = "";
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
         System.out.println(key.getEncoded().length);
     }
