@@ -9,7 +9,7 @@ public class JwtSelfTest {
 
     public static void main(String[] args) {
 
-        String secret = "8787uybdf7bf-f-=-0923$5#@#5uaf8y23y4t8y23t4y23t4y23t4y23";
+        String secret = "";
 
         var key = Keys.hmacShaKeyFor(secret.getBytes());
 
