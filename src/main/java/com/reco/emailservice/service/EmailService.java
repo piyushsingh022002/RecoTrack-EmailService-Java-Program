@@ -1,5 +1,6 @@
 package com.reco.emailservice.service;
 
+import com.reco.emailservice.EmailSender.EmailSender;
 import com.reco.emailservice.domain.EmailAction;
 import com.reco.emailservice.model.EmailActionRequest;
 import org.springframework.stereotype.Service;
@@ -8,9 +9,11 @@ import org.springframework.stereotype.Service;
 public class EmailService {
 
     private final EmailTemplateResolver resolver;
+    private final EmailSender emailSender;
 
-    public EmailService(EmailTemplateResolver resolver) {
+    public EmailService(EmailTemplateResolver resolver, EmailSender emailSender) {
         this.resolver = resolver;
+        this.emailSender = emailSender;
     }
 
     public void process(EmailActionRequest request) {
@@ -20,8 +23,9 @@ public class EmailService {
         var template = resolver.resolve(action, request);
 
         // send email (SMTP / SendGrid later)
-        System.out.println("Sending to: " + request.user.email);
-        System.out.println("Subject: " + template.subject());
-        System.out.println("Body: " + template.body());
+        emailSender.send(
+                request.user.email,
+                template.subject(),
+                template.body());
     }
 }
