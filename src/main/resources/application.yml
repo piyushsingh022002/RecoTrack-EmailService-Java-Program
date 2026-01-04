@@ -2,5 +2,18 @@ server:
   port: 8080
 
 jwt:
-  secret: ""
+  secret: ${JWT_SECRET}
   expiration: 900 # 15 minutes
+
+spring:
+  mail:
+    host: smtp.sendgrid.net
+    port: 587
+    username: apikey
+    password: ${SENDGRID_API_KEY}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
