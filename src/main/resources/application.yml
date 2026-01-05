@@ -2,8 +2,17 @@ server:
   port: 8080
 
 jwt:
-  secret: ${JWT_SECRET}
-  expiration: 900 # 15 minutes
+  user:
+    secret: ""
+    issuer: "RecoTrackAPI - Service"
+    audience: "RecoTrackWeb - Client"
+    clock-skew-seconds: 0
+
+  service:
+    secret: ""
+    issuer: "RecoTrackAPI - Service"
+    audience: "RecoTrackAPI - Email-Service"
+    clock-skew-seconds: 0
 
 spring:
   mail:
