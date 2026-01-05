@@ -1,32 +1,29 @@
 package com.reco.emailservice.model;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
+/**
+ * Payload received from client for triggering email actions.
+ * Contains only the action code; user info is extracted from JWT.
+ */
 public class EmailActionRequest {
 
-    @NotBlank
+    @NotBlank(message = "actionId is required")
     public String actionId;
 
-    @NotNull
-    public UserInfo user;
-
-    public Metadata metadata;
-
-    public static class UserInfo {
-        @NotBlank
-        public String id;
-
-        @NotBlank
-        public String username;
-
-        @Email
-        public String email;
+    // Default constructor for deserialization
+    public EmailActionRequest() {
     }
 
-    public static class Metadata {
-        public String source;
-        public String locale;
+    public EmailActionRequest(String actionId) {
+        this.actionId = actionId;
+    }
+
+    public String getActionId() {
+        return actionId;
+    }
+
+    public void setActionId(String actionId) {
+        this.actionId = actionId;
     }
 }
