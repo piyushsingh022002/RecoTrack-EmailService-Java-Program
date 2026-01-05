@@ -1,8 +1,5 @@
 package com.reco.emailservice.security;
 
-/**
- * DTO representing authenticated user extracted from JWT.
- */
 public class UserPrincipal {
 
     private final String userId;
@@ -29,6 +26,11 @@ public class UserPrincipal {
 
     @Override
     public String toString() {
-        return "UserPrincipal{userId='" + userId + "', username='" + username + "', email='" + email + "'}";
+
+        return "UserPrincipal{" +
+                "userId='" + userId + '\'' +
+                ", username='" + username + '\'' +
+                ", email='" + email + '\'' +
+                '}';
     }
 }
