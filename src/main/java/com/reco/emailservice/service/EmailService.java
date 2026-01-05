@@ -1,8 +1,11 @@
 package com.reco.emailservice.service;
 
 import com.reco.emailservice.EmailSender.EmailSender;
-import com.reco.emailservice.domain.EmailAction;
+import com.reco.emailservice.model.EmailAction;
 import com.reco.emailservice.model.EmailActionRequest;
+
+import com.reco.emailservice.security.UserPrincipal;
+
 import org.springframework.stereotype.Service;
 
 @Service
@@ -16,16 +19,25 @@ public class EmailService {
         this.emailSender = emailSender;
     }
 
-    public void process(EmailActionRequest request) {
+    /**
+     * Process email request: validate action, build template, send email.
+     *
+     * @param request payload containing actionId
+     * @param user    authenticated user extracted from JWT
+     */
+    public void process(EmailActionRequest request, UserPrincipal user) {
+        // 1️⃣ Validate and map action code to enum
+        EmailAction action;
+        try {
+            action = EmailAction.fromCode(request.getActionId());
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid Email Action code: " + request.getActionId(), ex);
+        }
 
-        EmailAction action = EmailAction.valueOf(request.actionId);
+        // 2️⃣ Resolve email template using action and user info
+        EmailTemplate template = resolver.resolve(action, user);
 
-        var template = resolver.resolve(action, request);
-
-        // send email (SMTP / SendGrid later)
-        emailSender.send(
-                request.user.email,
-                template.subject(),
-                template.body());
+        // 3️⃣ Send email
+        emailSender.send(user.getEmail(), template.subject(), template.body());
     }
 }
