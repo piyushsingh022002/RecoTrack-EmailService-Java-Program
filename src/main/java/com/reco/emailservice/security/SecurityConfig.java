@@ -5,25 +5,30 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, JwtUtil jwtUtil) throws Exception {
+    private final JwtValidator jwtValidator;
 
-        JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(jwtUtil);
+    public SecurityConfig(JwtValidator jwtValidator) {
+        this.jwtValidator = jwtValidator;
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
+        JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(jwtValidator);
 
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.disable())
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().authenticated())
-                .addFilterBefore(jwtFilter,
-                        org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
-
 }
