@@ -15,7 +15,7 @@ public class JwtUtil {
 
     private final Key key;
 
-    public JwtUtil(@Value("${jwt.secret}") String secret) {
+    public JwtUtil(@Value("${jwt.user.secret}") String secret) {
         if (secret == null || secret.isBlank()) {
             throw new IllegalArgumentException("jwt.secret must be provided");
         }

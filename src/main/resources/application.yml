@@ -3,26 +3,35 @@ server:
 
 jwt:
   user:
-    secret: ""
+    secret: ${JWT_USER_SECRET}
     issuer: "RecoTrackAPI - Service"
     audience: "RecoTrackWeb - Client"
     clock-skew-seconds: 0
 
   service:
-    secret: ""
+    secret: ${JWT_SERVICE_SECRET}
     issuer: "RecoTrackAPI - Service"
     audience: "RecoTrackAPI - Email-Service"
     clock-skew-seconds: 0
 
 spring:
   mail:
-    host: smtp.sendgrid.net
+    host: smtp-relay.brevo.com
     port: 587
-    username: apikey
-    password: ${SENDGRID_API_KEY}
+    username: ${BREVO_SMTP_USERNAME}
+    password: ${BREVO_SMTP_PASSWORD}
     properties:
       mail:
         smtp:
           auth: true
           starttls:
             enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

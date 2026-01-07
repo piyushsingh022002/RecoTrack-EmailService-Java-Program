@@ -1,26 +1,43 @@
 package com.reco.emailservice.service;
 
-import com.reco.emailservice.domain.EmailAction;
-import com.reco.emailservice.model.EmailActionRequest;
-import com.reco.emailservice.model.EmailTemplate;
+import com.reco.emailservice.model.EmailAction;
+import com.reco.emailservice.security.UserPrincipal;
 import org.springframework.stereotype.Component;
 
+/**
+ * Resolves email templates based on EmailAction and user info.
+ */
 @Component
 public class EmailTemplateResolver {
 
-    public EmailTemplate resolve(EmailAction action, EmailActionRequest request) {
+    /**
+     * Build email template for given action and user.
+     *
+     * @param action EmailAction enum
+     * @param user   Authenticated user from JWT
+     * @return EmailTemplate containing subject and body
+     */
+    public EmailTemplate resolve(EmailAction action, UserPrincipal user) {
+        String subject;
+        String body;
 
-        return switch (action) {
+        switch (action) {
+            case WELCOME -> {
+                subject = "Welcome " + user.getUsername();
+                body = "Hi " + user.getUsername() + ", welcome to RecoTrack!";
+            }
+            case PASSWORD_RESET -> {
+                subject = "Password Reset";
+                body = "Hi " + user.getUsername() + ", reset your password here: <link>";
+            }
+            case NOTIFICATION -> {
+                subject = "Notification";
+                body = "Hi " + user.getUsername() + ", you have a new notification.";
+            }
+            default -> throw new IllegalArgumentException("Unsupported EmailAction: " + action);
+        }
 
-            case USER_REGISTERED -> new EmailTemplate(
-                    "Welcome " + request.user.username,
-                    "Hi " + request.user.username + ", welcome to our platform!");
-
-            case PASSWORD_RESET -> new EmailTemplate(
-                    "Password Reset",
-                    "Reset link for user " + request.user.username);
-
-            default -> throw new IllegalArgumentException("Unsupported action");
-        };
+        return new EmailTemplate(subject, body);
     }
+
 }

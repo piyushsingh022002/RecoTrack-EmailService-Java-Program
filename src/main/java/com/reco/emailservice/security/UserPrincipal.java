@@ -26,6 +26,7 @@ public class UserPrincipal {
 
     @Override
     public String toString() {
+
         return "UserPrincipal{" +
                 "userId='" + userId + '\'' +
                 ", username='" + username + '\'' +

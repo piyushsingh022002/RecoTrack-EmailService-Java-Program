@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -20,6 +21,13 @@ import java.util.List;
  * - Service JWT: X-Service-Authorization: <token>
  */
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
+    private static final String[] PUBLIC_ENDPOINTS = {
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger-ui.html"
+    };
 
     private final JwtValidator jwtValidator;
 
@@ -71,9 +79,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
 
                 // Map claims to Authentication
-                String userId = userClaims.get("nameid", String.class);
-                String username = userClaims.get("name", String.class);
-                String email = userClaims.get("email", String.class);
+                // String userId = userClaims.get("nameid", String.class);
+                // String username = userClaims.get("name", String.class);
+                // String email = userClaims.get("email", String.class);
+
+                String userId = userClaims.get(DotNetClaimNames.NAME_IDENTIFIER, String.class);
+                String username = userClaims.get(DotNetClaimNames.NAME, String.class);
+                String email = userClaims.get(DotNetClaimNames.EMAIL, String.class);
 
                 var authorities = List.of(new SimpleGrantedAuthority("SCOPE_EMAIL_SEND"));
                 var authentication = new UsernamePasswordAuthenticationToken(
@@ -90,5 +102,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // Fallback: 500 internal for unexpected errors
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Authentication error");
         }
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        for (String pattern : PUBLIC_ENDPOINTS) {
+            if (PATH_MATCHER.match(pattern, path)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
