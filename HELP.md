@@ -26,3 +26,5 @@ While most of the inheritance is fine, it also inherits unwanted elements like `
 To prevent this, the project POM contains empty overrides for these elements.
 If you manually switch to a different parent and actually want the inheritance, you need to remove those overrides.
 
+Run - mvn spring-boot:run -Pdev      # Development with hardcoded values
+mvn spring-boot:run -Pprod     # Production with environment variables
