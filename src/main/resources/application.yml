@@ -3,13 +3,11 @@ server:
 
 jwt:
   user:
-    secret: ${JWT_USER_SECRET}
     issuer: "RecoTrackAPI - Service"
     audience: "RecoTrackWeb - Client"
     clock-skew-seconds: 0
 
   service:
-    secret: ${JWT_SERVICE_SECRET}
     issuer: "RecoTrackAPI - Service"
     audience: "RecoTrackAPI - Email-Service"
     clock-skew-seconds: 0
@@ -18,8 +16,6 @@ spring:
   mail:
     host: smtp-relay.brevo.com
     port: 587
-    username: ${BREVO_SMTP_USERNAME}
-    password: ${BREVO_SMTP_PASSWORD}
     properties:
       mail:
         smtp:
@@ -32,6 +28,7 @@ spring:
 
 springdoc:
   api-docs:
-    enabled: false
+    enabled: true
   swagger-ui:
-    enabled: false
+    enabled: true
+    path: /swagger-ui.html
