@@ -1,4 +1,4 @@
-name: Build Pipeline
+name: Test Pipeline
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,16 +20,14 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
-    - name: Clean all cached and build data
-      run: mvn clean
+    - name: Run tests
+      run: mvn clean test
+      continue-on-error: true
 
-    - name: Build application
-      run: mvn -B package -DskipTests
-
-    - name: Upload build artifacts
-      if: success()
+    - name: Upload test results
+      if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: email-service-jar
-        path: target/*.jar
+        name: test-results
+        path: target/surefire-reports/
         retention-days: 30

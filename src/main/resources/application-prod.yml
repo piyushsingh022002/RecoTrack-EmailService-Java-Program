@@ -1,0 +1,11 @@
+jwt:
+  user:
+    secret: ${JWT_USER_SECRET}
+
+  service:
+    secret: ${JWT_SERVICE_SECRET}
+
+spring:
+  mail:
+    username: ${BREVO_SMTP_USERNAME}
+    password: ${BREVO_SMTP_PASSWORD}

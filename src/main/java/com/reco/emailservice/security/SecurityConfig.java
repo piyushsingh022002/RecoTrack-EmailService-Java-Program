@@ -7,8 +7,17 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+/**
+ * Spring Security Configuration
+ *
+ * Configures security for the Email Service API:
+ * - JWT validation for user authentication
+ * - Service token validation for service-to-service communication
+ * - Public endpoints for health checks and OpenAPI documentation
+ * - Method-level security with @PreAuthorize annotations
+ */
 @Configuration
-@EnableMethodSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     private final JwtValidator jwtValidator;
@@ -17,6 +26,15 @@ public class SecurityConfig {
         this.jwtValidator = jwtValidator;
     }
 
+    /**
+     * Configures the security filter chain
+     *
+     * - Disables CSRF (for API-only service)
+     * - Disables session management (stateless JWT authentication)
+     * - Permits public endpoints
+     * - Requires authentication for other endpoints
+     * - Adds JWT validation filter
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
@@ -26,11 +44,16 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.disable())
                 .authorizeHttpRequests(auth -> auth
+                        // Public endpoints - no authentication required
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
-                                "/swagger-ui.html")
+                                "/swagger-ui.html",
+                                "/health",
+                                "/health/status",
+                                "/api/email/verify/**")
                         .permitAll()
+                        // All other requests require authentication
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
