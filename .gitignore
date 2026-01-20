@@ -27,5 +27,7 @@ replay_pid*
 /.vs
 *.Log
 *.log
-application-dev.yml
+src/main/resources/application.yml
+src/main/resources/application-dev.yml
+
 
