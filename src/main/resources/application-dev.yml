@@ -1,0 +1,17 @@
+jwt:
+  user:
+    secret: dev-secret-key-minimum-32-characters-needed-here
+
+  service:
+    secret: dev-service-secret-key-minimum-32-characters
+
+spring:
+  mail:
+    username: dev@example.com
+    password: dev-password
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

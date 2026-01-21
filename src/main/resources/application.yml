@@ -1,0 +1,34 @@
+server:
+  port: 8080
+
+jwt:
+  user:
+    issuer: "RecoTrackAPI - Service"
+    audience: "RecoTrackWeb - Client"
+    clock-skew-seconds: 0
+
+  service:
+    issuer: "RecoTrackAPI - Service"
+    audience: "RecoTrackAPI - Email-Service"
+    clock-skew-seconds: 0
+
+spring:
+  mail:
+    host: smtp-relay.brevo.com
+    port: 587
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
