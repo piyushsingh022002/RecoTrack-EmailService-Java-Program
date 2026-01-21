@@ -5,7 +5,5 @@ jwt:
   service:
     secret: ${JWT_SERVICE_SECRET}
 
-spring:
-  mail:
-    username: ${BREVO_SMTP_USERNAME}
-    password: ${BREVO_SMTP_PASSWORD}
+brevo:
+  api-key: ${BREVO_API_KEY}

@@ -1,29 +1,37 @@
 package com.reco.emailservice.EmailSender;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import java.util.Properties;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.JavaMailSenderImpl;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
 /**
- * Responsible for sending emails via SMTP (or other configured mail server).
+ * Responsible for sending emails via Brevo HTTP API.
  */
 @Component
 public class EmailSender {
 
     private static final Logger log = LoggerFactory.getLogger(EmailSender.class);
+    private static final String BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
-    private final JavaMailSender mailSender;
+    @Value("${brevo.api-key}")
+    private String brevoApiKey;
+
+    private final RestTemplate restTemplate;
     private final AtomicBoolean configLogged = new AtomicBoolean(false);
 
-    public EmailSender(JavaMailSender mailSender) {
-        this.mailSender = mailSender;
+    public EmailSender(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
     }
 
     /**
@@ -36,17 +44,30 @@ public class EmailSender {
     public void send(String to, String subject, String body) {
         logMailConfigurationOnce();
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+            // Build request payload
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("sender", Map.of("name", "PiyushWorkspace", "email", "workspace.piyush01@gmail.com"));
+            payload.put("to", List.of(Map.of("email", to)));
+            payload.put("subject", subject);
+            payload.put("htmlContent", body);
 
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(body, false);
-            helper.setFrom("workspace.piyush01@gmail.com");
+            // Build headers
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("api-key", brevoApiKey.trim());
 
-            mailSender.send(message);
+            // Create HTTP entity
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
+
+            // Send request
+            ResponseEntity<String> response = restTemplate.exchange(
+                    BREVO_API_URL,
+                    HttpMethod.POST,
+                    entity,
+                    String.class);
+
             log.info("Email sent to {}", maskEmail(to));
-        } catch (MessagingException e) {
+        } catch (Exception e) {
             log.error("Failed to send email to {}", maskEmail(to), e);
             throw new RuntimeException("Failed to send email", e);
         }
@@ -63,30 +84,11 @@ public class EmailSender {
     }
 
     private void logMailConfigurationOnce() {
-        if (configLogged.get() || !(mailSender instanceof JavaMailSenderImpl impl)) {
-            return;
-        }
         if (configLogged.compareAndSet(false, true)) {
-            Properties props = impl.getJavaMailProperties();
             log.info(
-                    "Mail config -> host: {}, port: {}, username: {}, protocol: {}, starttls: {}, auth: {}, passwordSet: {}",
-                    impl.getHost(),
-                    impl.getPort(),
-                    maskValue(impl.getUsername()),
-                    impl.getProtocol(),
-                    props.getProperty("mail.smtp.starttls.enable"),
-                    props.getProperty("mail.smtp.auth"),
-                    impl.getPassword() != null && !impl.getPassword().isBlank());
+                    "Mail config -> provider: Brevo HTTP API, url: {}, apiKeySet: {}",
+                    BREVO_API_URL,
+                    brevoApiKey != null && !brevoApiKey.isBlank());
         }
-    }
-
-    private String maskValue(String value) {
-        if (value == null || value.isBlank()) {
-            return "n/a";
-        }
-        if (value.length() <= 2) {
-            return "***";
-        }
-        return value.charAt(0) + "***" + value.charAt(value.length() - 1);
     }
 }
