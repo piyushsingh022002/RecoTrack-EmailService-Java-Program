@@ -3,8 +3,13 @@ package com.reco.emailservice.service;
 import com.reco.emailservice.EmailSender.EmailSender;
 import com.reco.emailservice.model.EmailAction;
 import com.reco.emailservice.model.EmailActionRequest;
+import com.reco.emailservice.model.ForgotPasswordOtpRequest;
 import com.reco.emailservice.security.UserPrincipal;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Email Service
@@ -17,6 +22,8 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class EmailService {
+
+    private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
     private final EmailTemplateResolver resolver;
     private final EmailSender emailSender;
@@ -81,6 +88,22 @@ public class EmailService {
     }
 
     /**
+     * Send forgot-password OTP via service-to-service call.
+     *
+     * @param request payload containing email, otp, and action type
+     */
+    public void sendForgotPasswordOtp(ForgotPasswordOtpRequest request) {
+        if (request.getActionType() != EmailAction.FORGOT_PASSWORD) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "actionType must be FORGOT_PASSWORD");
+        }
+
+        EmailTemplate template = resolver.resolveForgotPasswordOtp(request.getOtp());
+
+        log.info("Sending forgot-password OTP email to {}", maskEmail(request.getEmail()));
+        emailSender.send(request.getEmail(), template.subject(), template.body());
+    }
+
+    /**
      * Process critical email request requiring both user JWT and service token.
      *
      * Maximum security for sensitive operations.
@@ -121,5 +144,13 @@ public class EmailService {
         // In a real implementation, query the database for email status
         // This is a placeholder for the verification logic
         return !emailId.isEmpty();
+    }
+
+    private String maskEmail(String email) {
+        int atIndex = email.indexOf("@");
+        if (atIndex <= 1) {
+            return "***" + (atIndex >= 0 ? email.substring(atIndex) : "");
+        }
+        return email.charAt(0) + "***" + email.substring(atIndex);
     }
 }
