@@ -7,7 +7,8 @@ package com.reco.emailservice.model;
 public enum EmailAction {
     WELCOME,
     PASSWORD_RESET,
-    NOTIFICATION;
+    NOTIFICATION,
+    FORGOT_PASSWORD;
 
     public static EmailAction fromCode(String code) {
         for (EmailAction action : values()) {
